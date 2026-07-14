@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>BillingModel__c</fullName>
+    <label>Billing Model</label>
+    <required>true</required>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Fixed</fullName>
+                <default>false</default>
+                <label>Fixed</label>
+            </value>
+            <value>
+                <fullName>PayPerUse</fullName>
+                <default>false</default>
+                <label>PayPerUse</label>
+            </value>
+            <value>
+                <fullName>Hybrid</fullName>
+                <default>false</default>
+                <label>Hybrid</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>
