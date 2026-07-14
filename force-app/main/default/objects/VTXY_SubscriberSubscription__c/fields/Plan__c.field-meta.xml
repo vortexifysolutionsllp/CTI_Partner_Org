@@ -4,7 +4,7 @@
     <deleteConstraint>Restrict</deleteConstraint>
     <description>Current plan</description>
     <label>Subscription Plan</label>
-    <referenceTo>SubscriptionPlan__c</referenceTo>
+    <referenceTo>VTXY_SubscriptionPlan__c</referenceTo>
     <relationshipLabel>Subscriber Subscriptions</relationshipLabel>
     <relationshipName>Subscriber_Subscriptions</relationshipName>
     <required>true</required>
