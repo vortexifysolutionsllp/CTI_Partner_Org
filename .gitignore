@@ -1,0 +1,15 @@
+.sf/
+.sfdx/
+.secrets/
+keys/
+*.key
+*.crt
+*.pem
+out/
+coverage/
+test-results/
+.DS_Store
+.vscode/settings.json
+node_modules/
+.env
+.env.*
