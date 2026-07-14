@@ -153,12 +153,12 @@
     <enableSharing>true</enableSharing>
     <enableStreamingApi>true</enableStreamingApi>
     <externalSharingModel>Private</externalSharingModel>
-    <label>InvoiceStaging</label>
+    <label>Usage Summary</label>
     <nameField>
-        <label>InvoiceStagingName</label>
+        <label>Usage SummaryName</label>
         <type>Text</type>
     </nameField>
-    <pluralLabel>InvoiceStagings</pluralLabel>
+    <pluralLabel>Usage Summaries</pluralLabel>
     <searchLayouts></searchLayouts>
     <sharingModel>ReadWrite</sharingModel>
     <visibility>Public</visibility>

@@ -153,12 +153,12 @@
     <enableSharing>true</enableSharing>
     <enableStreamingApi>true</enableStreamingApi>
     <externalSharingModel>Private</externalSharingModel>
-    <label>ProviderNumber</label>
+    <label>Usage Record</label>
     <nameField>
-        <label>ProviderNumberName</label>
+        <label>Usage Record Name</label>
         <type>Text</type>
     </nameField>
-    <pluralLabel>ProviderNumbers</pluralLabel>
+    <pluralLabel>Usage Records</pluralLabel>
     <searchLayouts></searchLayouts>
     <sharingModel>ReadWrite</sharingModel>
     <visibility>Public</visibility>

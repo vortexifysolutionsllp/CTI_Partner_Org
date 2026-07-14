@@ -3,7 +3,7 @@
     <fullName>Provider_License__c</fullName>
     <deleteConstraint>SetNull</deleteConstraint>
     <label>Provider License</label>
-    <referenceTo>ProviderLicense__c</referenceTo>
+    <referenceTo>VTXY_ProviderLicense__c</referenceTo>
     <relationshipLabel>UsageRecords</relationshipLabel>
     <relationshipName>UsageRecords</relationshipName>
     <required>false</required>
