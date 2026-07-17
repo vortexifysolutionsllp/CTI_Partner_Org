@@ -143,23 +143,23 @@
     <allowInChatterGroups>false</allowInChatterGroups>
     <compactLayoutAssignment>SYSTEM</compactLayoutAssignment>
     <deploymentStatus>Deployed</deploymentStatus>
-    <description>Returned as provider allocation summary</description>
+    <description>Optional mirror of subscriber assignment</description>
     <enableActivities>true</enableActivities>
     <enableBulkApi>true</enableBulkApi>
     <enableFeeds>false</enableFeeds>
     <enableHistory>false</enableHistory>
     <enableLicensing>false</enableLicensing>
     <enableReports>true</enableReports>
-    <enableSearch>true</enableSearch>
+    <enableSearch>false</enableSearch>
     <enableSharing>true</enableSharing>
     <enableStreamingApi>true</enableStreamingApi>
     <externalSharingModel>Private</externalSharingModel>
-    <label>Provider License</label>
+    <label>Number Assignment</label>
     <nameField>
-        <label>Provider License Name</label>
+        <label>Number Assignment Name</label>
         <type>Text</type>
     </nameField>
-    <pluralLabel>Provider Licenses</pluralLabel>
+    <pluralLabel>NumberAssignment</pluralLabel>
     <searchLayouts></searchLayouts>
     <sharingModel>ReadWrite</sharingModel>
     <visibility>Public</visibility>

@@ -143,7 +143,7 @@
     <allowInChatterGroups>false</allowInChatterGroups>
     <compactLayoutAssignment>SYSTEM</compactLayoutAssignment>
     <deploymentStatus>Deployed</deploymentStatus>
-    <description>Returned as provider allocation summary</description>
+    <description>Supports multiple providers</description>
     <enableActivities>true</enableActivities>
     <enableBulkApi>true</enableBulkApi>
     <enableFeeds>false</enableFeeds>
@@ -154,12 +154,12 @@
     <enableSharing>true</enableSharing>
     <enableStreamingApi>true</enableStreamingApi>
     <externalSharingModel>Private</externalSharingModel>
-    <label>Provider License</label>
+    <label>Provider</label>
     <nameField>
-        <label>Provider License Name</label>
+        <label>VTX_Provider__c Name</label>
         <type>Text</type>
     </nameField>
-    <pluralLabel>Provider Licenses</pluralLabel>
+    <pluralLabel>Provider</pluralLabel>
     <searchLayouts></searchLayouts>
     <sharingModel>ReadWrite</sharingModel>
     <visibility>Public</visibility>
