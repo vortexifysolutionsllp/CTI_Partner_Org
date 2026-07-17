@@ -1,42 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
-    <fullName>Status__c</fullName>
-    <label>Status</label>
+    <fullName>License_Status__c</fullName>
+    <description>Current license state</description>
+    <label>License Status</label>
     <required>true</required>
+    <trackHistory>false</trackHistory>
     <trackTrending>false</trackTrending>
     <type>Picklist</type>
     <valueSet>
         <valueSetDefinition>
             <sorted>false</sorted>
             <value>
-                <fullName>Trial</fullName>
+                <fullName>TRIAL</fullName>
                 <default>false</default>
-                <label>Trial</label>
+                <label>TRIAL</label>
             </value>
             <value>
-                <fullName>Active</fullName>
+                <fullName>ACTIVE</fullName>
                 <default>false</default>
-                <label>Active</label>
+                <label>ACTIVE</label>
             </value>
             <value>
-                <fullName>Expired</fullName>
+                <fullName>GRACE</fullName>
                 <default>false</default>
-                <label>Expired</label>
+                <label>GRACE</label>
             </value>
             <value>
-                <fullName>Grace</fullName>
+                <fullName>SUSPENDED</fullName>
                 <default>false</default>
-                <label>Grace</label>
+                <label>SUSPENDED</label>
             </value>
             <value>
-                <fullName>Suspended</fullName>
+                <fullName>EXPIRED</fullName>
                 <default>false</default>
-                <label>Suspended</label>
+                <label>EXPIRED</label>
             </value>
             <value>
-                <fullName>Cancelled</fullName>
+                <fullName>CANCELLED UNKNOWN</fullName>
                 <default>false</default>
-                <label>Cancelled</label>
+                <label>CANCELLED UNKNOWN</label>
             </value>
         </valueSetDefinition>
     </valueSet>
