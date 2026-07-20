@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>License_Status__c</fullName>
+    <description>Current license state</description>
+    <label>License Status</label>
+    <required>true</required>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>TRIAL</fullName>
+                <default>false</default>
+                <label>TRIAL</label>
+            </value>
+            <value>
+                <fullName>ACTIVE</fullName>
+                <default>false</default>
+                <label>ACTIVE</label>
+            </value>
+            <value>
+                <fullName>GRACE</fullName>
+                <default>false</default>
+                <label>GRACE</label>
+            </value>
+            <value>
+                <fullName>SUSPENDED</fullName>
+                <default>false</default>
+                <label>SUSPENDED</label>
+            </value>
+            <value>
+                <fullName>EXPIRED</fullName>
+                <default>false</default>
+                <label>EXPIRED</label>
+            </value>
+            <value>
+                <fullName>CANCELLED UNKNOWN</fullName>
+                <default>false</default>
+                <label>CANCELLED UNKNOWN</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>
