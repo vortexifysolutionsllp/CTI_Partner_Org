@@ -19,9 +19,9 @@
                 <label>Active</label>
             </value>
             <value>
-                <fullName>Past Due</fullName>
+                <fullName>Expired</fullName>
                 <default>false</default>
-                <label>Past Due</label>
+                <label>Expired</label>
             </value>
             <value>
                 <fullName>Grace</fullName>

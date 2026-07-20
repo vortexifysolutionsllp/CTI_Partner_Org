@@ -4,7 +4,7 @@
     <deleteConstraint>Restrict</deleteConstraint>
     <description>Subscriber</description>
     <label>Subscriber Org</label>
-    <referenceTo>SubscriberOrg__c</referenceTo>
+    <referenceTo>VTXY_SubscriberOrg__c</referenceTo>
     <relationshipLabel>EntitleAment Audits</relationshipLabel>
     <relationshipName>EntitleAment_Audits</relationshipName>
     <required>true</required>
