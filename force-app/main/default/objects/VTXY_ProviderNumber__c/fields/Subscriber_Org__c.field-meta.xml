@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Subscriber_Org__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <label>Subscriber Org</label>
+    <referenceTo>VTXY_SubscriberOrg__c</referenceTo>
+    <relationshipLabel>Provider Numbers</relationshipLabel>
+    <relationshipName>Provider_Numbers</relationshipName>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Lookup</type>
+</CustomField>

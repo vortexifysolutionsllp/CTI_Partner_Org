@@ -10,14 +10,14 @@
         <valueSetDefinition>
             <sorted>false</sorted>
             <value>
-                <fullName>Available</fullName>
+                <fullName>Failed</fullName>
                 <default>false</default>
-                <label>Available</label>
+                <label>Failed</label>
             </value>
             <value>
-                <fullName>Reserved</fullName>
+                <fullName>Inactive</fullName>
                 <default>false</default>
-                <label>Reserved</label>
+                <label>Inactive</label>
             </value>
             <value>
                 <fullName>Active</fullName>
@@ -25,19 +25,9 @@
                 <label>Active</label>
             </value>
             <value>
-                <fullName>Suspended</fullName>
+                <fullName>Success</fullName>
                 <default>false</default>
-                <label>Suspended</label>
-            </value>
-            <value>
-                <fullName>Released</fullName>
-                <default>false</default>
-                <label>Released</label>
-            </value>
-            <value>
-                <fullName>Retired</fullName>
-                <default>false</default>
-                <label>Retired</label>
+                <label>Success</label>
             </value>
         </valueSetDefinition>
     </valueSet>
