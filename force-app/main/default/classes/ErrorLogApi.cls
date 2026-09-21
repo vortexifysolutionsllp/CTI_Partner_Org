@@ -50,7 +50,10 @@ global without sharing class ErrorLogApi {
                     req.requestBody.toString(),
                     ErrorLogSyncRequestDTO.class
                 );
-
+                System.debug(
+                    'ErrorLogSyncRequestDTO: ' +
+                    JSON.serializePretty(requestDto)
+                );
             responseDto =
                 ErrorLogSyncService.process(requestDto);
 

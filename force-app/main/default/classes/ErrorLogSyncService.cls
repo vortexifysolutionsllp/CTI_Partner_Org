@@ -1,251 +1,782 @@
-/**
- * DEPLOY TO: Partner Org
- *
- * Converts Subscriber Error Logs into Salesforce Cases.
- */
 public with sharing class ErrorLogSyncService {
 
     public static ErrorLogSyncResponseDTO process(
-        ErrorLogSyncRequestDTO request
+        ErrorLogSyncRequestDTO requestDto
     ) {
-
-        if (request == null ||
-            request.errorLogs == null ||
-            request.errorLogs.isEmpty()) {
-
-            return ErrorLogSyncResponseDTO.failure(
-                'No Error Logs were provided',
-                'NO_ERROR_LOGS'
-            );
-        }
-
-        List<Case> casesToInsert = new List<Case>();
-
-        /*
-         * Keep the source Error Log information aligned
-         * with the Case being created.
-         */
-        List<ErrorLogSyncRequestDTO.ErrorLogWrapper> logsToProcess =
-            new List<ErrorLogSyncRequestDTO.ErrorLogWrapper>();
-
-        for (
-            ErrorLogSyncRequestDTO.ErrorLogWrapper errorLog :
-            request.errorLogs
-        ) {
-
-            if (String.isBlank(errorLog.id)) {
-                continue;
-            }
-
-            Case caseRecord = new Case();
-
-            /*
-             * Subject
-             */
-            String className =
-                String.isBlank(errorLog.className)
-                    ? 'Unknown Class'
-                    : errorLog.className;
-
-            String methodName =
-                String.isBlank(errorLog.methodName)
-                    ? 'Unknown Method'
-                    : errorLog.methodName;
-
-            caseRecord.Subject =
-                'Error: ' +
-                className +
-                '.' +
-                methodName;
-
-            /*
-             * Description
-             *
-             * Map ALL Error Log fields into the Case.
-             */
-            caseRecord.Description =
-                buildCaseDescription(errorLog);
-
-            /*
-             * Standard Case fields.
-             *
-             * Only set these if these are valid values
-             * in your Partner Org.
-             */
-            caseRecord.Origin = 'API';
-            caseRecord.Priority = 'High';
-
-            casesToInsert.add(caseRecord);
-            logsToProcess.add(errorLog);
-        }
-
-        if (casesToInsert.isEmpty()) {
-
-            return ErrorLogSyncResponseDTO.failure(
-                'No valid Error Logs were found',
-                'NO_VALID_ERROR_LOGS'
-            );
-        }
-
-        /*
-         * Insert all Cases together.
-         */
-        Database.SaveResult[] saveResults =
-            Database.insert(casesToInsert, false);
 
         List<ErrorLogSyncResponseDTO.ErrorLogResult> results =
             new List<ErrorLogSyncResponseDTO.ErrorLogResult>();
 
-        Boolean allSuccessful = true;
+        /*
+         * ============================================================
+         * 1. VALIDATE REQUEST
+         * ============================================================
+         */
 
-        for (Integer i = 0; i < saveResults.size(); i++) {
+        if (requestDto == null) {
 
-            Database.SaveResult sr = saveResults[i];
+            return ErrorLogSyncResponseDTO.failure(
+                'Request payload is required',
+                'INVALID_REQUEST'
+            );
+        }
 
-            ErrorLogSyncRequestDTO.ErrorLogWrapper errorLog =
-                logsToProcess[i];
+
+        /*
+         * ============================================================
+         * 2. READ SUBSCRIBER USAGE
+         *
+         * The Subscriber Org sends:
+         *
+         * {
+         *     "subscriberUsage": {
+         *         "subscriberOrgId": "...",
+         *         "status": "...",
+         *         "assignedPhoneNumbers": "...",
+         *         "currentBalance": ...
+         *     }
+         * }
+         * ============================================================
+         */
+
+        String subscriberOrgId;
+        String incomingStatus;
+        Decimal incomingBalance;
+
+        List<String> incomingPhoneNumbers =
+            new List<String>();
+
+
+        if (requestDto != null) {
+
+            subscriberOrgId =
+                requestDto.subscriberOrgId;
+
+            incomingStatus =
+                requestDto.status;
+
+            incomingBalance =
+                requestDto.currentBalance;
+
+
+            /*
+             * assignedPhoneNumbers comes from Subscriber Org
+             * as a comma-separated String.
+             */
+            if (
+                String.isNotBlank(
+                    requestDto.assignedPhoneNumbers
+                )
+            ) {
+
+                for (
+                    String phoneNumber :
+                    requestDto.assignedPhoneNumbers
+                        .split(',')
+                ) {
+
+                    if (String.isNotBlank(phoneNumber)) {
+
+                        incomingPhoneNumbers.add(
+                            phoneNumber.trim()
+                        );
+                    }
+                }
+            }
+        }
+
+
+        /*
+         * ============================================================
+         * 3. FIND SUBSCRIBER ORG
+         *
+         * Match incoming Org Id against OrgId__c.
+         * ============================================================
+         */
+
+        VTXY_SubscriberOrg__c subscriberOrg;
+
+        if (String.isNotBlank(subscriberOrgId)) {
+
+            List<VTXY_SubscriberOrg__c> subscriberOrgs = [
+
+                SELECT Id,
+                       OrgId__c,
+                       Status__c,
+                       Current_Balance__c,
+                       Previous_Balance__c,
+                       Assigned_Phone_Numbers__c
+
+                FROM VTXY_SubscriberOrg__c
+
+                WHERE OrgId__c = :subscriberOrgId
+
+                LIMIT 1
+            ];
+
+            if (!subscriberOrgs.isEmpty()) {
+
+                subscriberOrg =
+                    subscriberOrgs[0];
+            }
+        }
+
+
+        /*
+         * ============================================================
+         * 4. PREPARE RESPONSE INFORMATION
+         * ============================================================
+         */
+
+        Decimal previousBalance;
+
+        List<String> finalPhoneNumbers =
+            new List<String>();
+
+        ErrorLogSyncResponseDTO.PhoneNumberChange phoneChanges =
+            new ErrorLogSyncResponseDTO.PhoneNumberChange();
+
+
+        /*
+         * ============================================================
+         * 5. UPDATE SUBSCRIBER ORG
+         * ============================================================
+         */
+
+        if (subscriberOrg != null) {
+
+
+            /*
+             * --------------------------------------------------------
+             * STATUS
+             * --------------------------------------------------------
+             */
+
+            subscriberOrg.Status__c =
+                incomingStatus;
+
+
+            /*
+             * --------------------------------------------------------
+             * BALANCE
+             *
+             * Existing Current Balance is copied to
+             * Previous Balance before the new balance
+             * is stored.
+             * --------------------------------------------------------
+             */
+
+            if (subscriberOrg.Current_Balance__c != null) {
+
+                previousBalance =
+                    subscriberOrg.Current_Balance__c;
+
+                subscriberOrg.Previous_Balance__c =
+                    subscriberOrg.Current_Balance__c;
+            }
+
+            subscriberOrg.Current_Balance__c =
+                Decimal.valueOf(incomingBalance);
+
+
+            /*
+             * --------------------------------------------------------
+             * PHONE NUMBERS
+             * --------------------------------------------------------
+             */
+
+            List<String> existingPhoneNumbers =
+                new List<String>();
+
+
+            /*
+             * Read existing numbers from Subscriber Org.
+             */
+            if (
+                String.isNotBlank(
+                    subscriberOrg.Assigned_Phone_Numbers__c
+                )
+            ) {
+
+                for (
+                    String phoneNumber :
+                    subscriberOrg.Assigned_Phone_Numbers__c
+                        .split(',')
+                ) {
+
+                    if (String.isNotBlank(phoneNumber)) {
+
+                        existingPhoneNumbers.add(
+                            phoneNumber.trim()
+                        );
+                    }
+                }
+            }
+
+
+            /*
+             * Convert existing and incoming numbers to Sets
+             * for comparison.
+             */
+            Set<String> existingPhoneSet =
+                new Set<String>(
+                    existingPhoneNumbers
+                );
+
+            Set<String> incomingPhoneSet =
+                new Set<String>(
+                    incomingPhoneNumbers
+                );
+
+
+            /*
+             * --------------------------------------------------------
+             * FIND REMOVED NUMBERS
+             *
+             * Existing number is not present in incoming list.
+             * --------------------------------------------------------
+             */
+
+            for (
+                String existingPhone :
+                existingPhoneSet
+            ) {
+
+                if (
+                    !incomingPhoneSet.contains(
+                        existingPhone
+                    )
+                ) {
+
+                    phoneChanges.removed.add(
+                        existingPhone
+                    );
+                }
+            }
+
+
+            /*
+             * --------------------------------------------------------
+             * FIND ADDED NUMBERS
+             *
+             * Incoming number does not exist currently.
+             * --------------------------------------------------------
+             */
+
+            for (
+                String incomingPhone :
+                incomingPhoneSet
+            ) {
+
+                if (
+                    !existingPhoneSet.contains(
+                        incomingPhone
+                    )
+                ) {
+
+                    phoneChanges.added.add(
+                        incomingPhone
+                    );
+                }
+            }
+
+
+            /*
+             * --------------------------------------------------------
+             * DETERMINE PHONE NUMBER ACTION
+             * --------------------------------------------------------
+             */
+
+            if (
+                phoneChanges.added.isEmpty() &&
+                phoneChanges.removed.isEmpty()
+            ) {
+
+                phoneChanges.action =
+                    'NO_CHANGE';
+
+            } else {
+
+                phoneChanges.action =
+                    'UPDATED';
+            }
+
+
+            /*
+             * --------------------------------------------------------
+             * UPDATE ASSIGNED PHONE NUMBERS
+             *
+             * Incoming list is the source of truth.
+             * --------------------------------------------------------
+             */
+
+            if (
+                !phoneChanges.added.isEmpty() ||
+                !phoneChanges.removed.isEmpty()
+            ) {
+
+                finalPhoneNumbers =
+                    incomingPhoneNumbers;
+
+                subscriberOrg.Assigned_Phone_Numbers__c =
+                    String.join(
+                        finalPhoneNumbers,
+                        ', '
+                    );
+
+            } else {
+
+                /*
+                 * No change required.
+                 */
+                finalPhoneNumbers =
+                    existingPhoneNumbers;
+            }
+
+
+            /*
+             * --------------------------------------------------------
+             * SAVE SUBSCRIBER ORG
+             * --------------------------------------------------------
+             */
+
+            update subscriberOrg;
+        }
+
+
+        /*
+         * ============================================================
+         * 6. NO ERROR LOGS
+         * ============================================================
+         */
+
+        if (
+            requestDto.errorLogs == null ||
+            requestDto.errorLogs.isEmpty()
+        ) {
+
+            ErrorLogSyncResponseDTO response =
+                ErrorLogSyncResponseDTO.success(
+                    results
+                );
+
+            response.status =
+                'SYNCED';
+
+            response.subscriberOrgId =
+                subscriberOrgId;
+
+
+            if (subscriberOrg != null) {
+
+                response.subscriberOrgRecordId =
+                    subscriberOrg.Id;
+
+                response.subscriberOrgStatus =
+                    subscriberOrg.Status__c;
+
+                response.previousBalance =
+                    previousBalance;
+
+                response.currentBalance =
+                    subscriberOrg.Current_Balance__c;
+
+                response.assignedPhoneNumbers =
+                    finalPhoneNumbers;
+
+            } else {
+
+                /*
+                 * Subscriber Org was not found.
+                 * Return incoming values.
+                 */
+                response.currentBalance =
+                    incomingBalance;
+
+                response.assignedPhoneNumbers =
+                    incomingPhoneNumbers;
+            }
+
+
+            response.phoneNumberChanges =
+                phoneChanges;
+
+            return response;
+        }
+
+
+        /*
+         * ============================================================
+         * 7. CREATE CASES FOR ERROR LOGS
+         * ============================================================
+         */
+
+        List<Case> casesToInsert =
+            new List<Case>();
+
+        List<ErrorLogSyncRequestDTO.ErrorLogWrapper> logs =
+            requestDto.errorLogs;
+
+
+        for (
+            ErrorLogSyncRequestDTO.ErrorLogWrapper logRecord :
+            logs
+        ) {
+
+            Case newCase =
+                new Case();
+
+
+            /*
+             * Subject
+             */
+            newCase.Subject =
+                'Error: ' +
+                (
+                    String.isBlank(
+                        logRecord.className
+                    )
+                        ? 'Unknown'
+                        : logRecord.className
+                ) +
+                '.' +
+                (
+                    String.isBlank(
+                        logRecord.methodName
+                    )
+                        ? 'Unknown'
+                        : logRecord.methodName
+                );
+
+
+            /*
+             * Description
+             */
+            newCase.Description =
+                buildCaseDescription(
+                    logRecord
+                );
+
+
+            /*
+             * Case fields
+             */
+            newCase.Origin =
+                'API';
+
+            newCase.Priority =
+                'High';
+
+
+            /*
+             * Link Case to Subscriber Org.
+             */
+            if (subscriberOrg != null) {
+
+                newCase.Subscriber_Org__c =
+                    subscriberOrg.Id;
+            }
+
+
+            casesToInsert.add(
+                newCase
+            );
+        }
+
+
+        /*
+         * ============================================================
+         * 8. INSERT CASES
+         * ============================================================
+         */
+
+        Database.SaveResult[] saveResults =
+            Database.insert(
+                casesToInsert,
+                false
+            );
+
+
+        for (
+            Integer i = 0;
+            i < saveResults.size();
+            i++
+        ) {
+
+            Database.SaveResult saveResult =
+                saveResults[i];
 
             ErrorLogSyncResponseDTO.ErrorLogResult result =
                 new ErrorLogSyncResponseDTO.ErrorLogResult();
 
-            result.requestId = errorLog.correlationId;
-            result.errorLogId = errorLog.id;
 
-            if (sr.isSuccess()) {
+            result.errorLogId =
+                logs[i].id;
 
-                result.status = 'SYNCED';
-                result.caseId = sr.getId();
-                result.message = 'Case created successfully';
-                result.errorCode = null;
+
+            if (saveResult.isSuccess()) {
+
+                result.status =
+                    'SYNCED';
+
+                result.caseId =
+                    saveResult.getId();
 
             } else {
 
-                allSuccessful = false;
+                result.status =
+                    'FAILED';
 
-                result.status = 'FAILED';
-                result.caseId = null;
-                result.message =
-                    sr.getErrors()[0].getMessage();
-                result.errorCode =
-                    String.valueOf(
-                        sr.getErrors()[0].getStatusCode()
-                    );
+
+                if (
+                    saveResult.getErrors() != null &&
+                    !saveResult.getErrors().isEmpty()
+                ) {
+
+                    result.message =
+                        saveResult
+                            .getErrors()[0]
+                            .getMessage();
+
+                    result.errorCode =
+                        String.valueOf(
+                            saveResult
+                                .getErrors()[0]
+                                .getStatusCode()
+                        );
+                }
             }
 
-            results.add(result);
+
+            results.add(
+                result
+            );
         }
 
-        ErrorLogSyncResponseDTO response =
-            ErrorLogSyncResponseDTO.success(results);
 
         /*
-         * If at least one Case failed, don't report the
-         * entire operation as fully successful.
+         * ============================================================
+         * 9. DETERMINE ERROR LOG RESULT
+         * ============================================================
          */
-        if (!allSuccessful) {
-            response.success = false;
-            response.status = 'PARTIAL';
+
+        Boolean hasFailure =
+            false;
+
+        Boolean hasSuccess =
+            false;
+
+
+        for (
+            ErrorLogSyncResponseDTO.ErrorLogResult result :
+            results
+        ) {
+
+            if (result.status == 'SYNCED') {
+
+                hasSuccess =
+                    true;
+            }
+
+            if (result.status == 'FAILED') {
+
+                hasFailure =
+                    true;
+            }
         }
+
+
+        /*
+         * ============================================================
+         * 10. BUILD RESPONSE
+         * ============================================================
+         */
+
+        ErrorLogSyncResponseDTO response =
+            ErrorLogSyncResponseDTO.success(
+                results
+            );
+
+
+        response.subscriberOrgId =
+            subscriberOrgId;
+
+
+        if (subscriberOrg != null) {
+
+            response.subscriberOrgRecordId =
+                subscriberOrg.Id;
+
+            response.subscriberOrgStatus =
+                subscriberOrg.Status__c;
+
+            response.previousBalance =
+                previousBalance;
+
+            response.currentBalance =
+                subscriberOrg.Current_Balance__c;
+
+            response.assignedPhoneNumbers =
+                finalPhoneNumbers;
+
+        } else {
+
+            response.currentBalance =
+                incomingBalance;
+
+            response.assignedPhoneNumbers =
+                incomingPhoneNumbers;
+        }
+
+
+        /*
+         * Phone number changes.
+         */
+        response.phoneNumberChanges =
+            phoneChanges;
+
+
+        /*
+         * ============================================================
+         * 11. OVERALL RESPONSE STATUS
+         * ============================================================
+         */
+
+        if (hasFailure && hasSuccess) {
+
+            response.status =
+                'PARTIAL';
+
+        } else if (hasFailure) {
+
+            response.success =
+                false;
+
+            response.status =
+                'FAILED';
+
+        } else {
+
+            response.status =
+                'SYNCED';
+        }
+
 
         return response;
     }
 
 
+    /*
+     * ================================================================
+     * BUILD CASE DESCRIPTION
+     * ================================================================
+     */
+
     private static String buildCaseDescription(
-        ErrorLogSyncRequestDTO.ErrorLogWrapper errorLog
+        ErrorLogSyncRequestDTO.ErrorLogWrapper logRecord
     ) {
 
-        List<String> lines = new List<String>();
+        List<String> lines =
+            new List<String>();
 
-        lines.add('===== Error Log Details =====');
 
         lines.add(
-            'Error Log Id: ' +
-            String.valueOf(errorLog.id)
+            'Error Log ID: ' +
+            logRecord.id
         );
 
         lines.add(
             'Name: ' +
-            String.valueOf(errorLog.name)
+            logRecord.name
         );
 
         lines.add(
-            'Class Name: ' +
-            String.valueOf(errorLog.className)
+            'Class: ' +
+            logRecord.className
         );
 
         lines.add(
-            'Method Name: ' +
-            String.valueOf(errorLog.methodName)
+            'Method: ' +
+            logRecord.methodName
         );
 
         lines.add(
             'Component: ' +
-            String.valueOf(errorLog.component)
+            logRecord.component
         );
 
         lines.add(
             'Log Level: ' +
-            String.valueOf(errorLog.logLevel)
+            logRecord.logLevel
         );
 
         lines.add(
             'Status: ' +
-            String.valueOf(errorLog.status)
+            logRecord.status
+        );
+
+        lines.add(
+            'Message: ' +
+            logRecord.message
         );
 
         lines.add(
             'Error Code: ' +
-            String.valueOf(errorLog.errorCode)
+            logRecord.errorCode
         );
 
         lines.add(
-            'Correlation Id: ' +
-            String.valueOf(errorLog.correlationId)
+            'Correlation ID: ' +
+            logRecord.correlationId
         );
 
         lines.add(
-            'Related Record Id: ' +
-            String.valueOf(errorLog.relatedRecordId)
+            'Related Record ID: ' +
+            logRecord.relatedRecordId
         );
 
         lines.add(
             'Created Date: ' +
-            String.valueOf(errorLog.createdDate)
+            logRecord.createdDate
         );
+
 
         lines.add('');
 
-        lines.add('===== Message =====');
+        lines.add(
+            'Stack Trace:'
+        );
 
         lines.add(
-            String.valueOf(errorLog.message)
+            logRecord.stackTrace
         );
+
 
         lines.add('');
 
-        lines.add('===== Stack Trace =====');
+        lines.add(
+            'Payload JSON:'
+        );
 
         lines.add(
-            String.valueOf(errorLog.stackTrace)
+            logRecord.payloadJSON
         );
+
 
         lines.add('');
 
-        lines.add('===== Payload JSON =====');
-
         lines.add(
-            String.valueOf(errorLog.payloadJSON)
+            'Context JSON:'
         );
 
-        lines.add('');
-
-        lines.add('===== Context JSON =====');
-
         lines.add(
-            String.valueOf(errorLog.contextJSON)
+            logRecord.contextJSON
         );
 
-        return String.join(lines, '\n');
+
+        return String.join(
+            lines,
+            '\n'
+        );
     }
 }
