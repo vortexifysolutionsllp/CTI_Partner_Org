@@ -29,8 +29,9 @@ global without sharing class VTXP_EntitlementApi {
 
         try {
             VTXP_EntitlementSyncRequestDTO requestDto = parseRequest(req);
+            VTXP_EntitlementService.syncSubscriberOrg(requestDto);//Vtxe-40
             responseDto = VTXP_EntitlementService.resolveEntitlements(requestDto);
-            res.statusCode = responseDto.success ? 200 : 400;
+           res.statusCode = responseDto.success ? 200 : 400;
 
         } catch (Exception ex) {
             responseDto = VTXP_EntitlementSyncResponseDTO.failure(

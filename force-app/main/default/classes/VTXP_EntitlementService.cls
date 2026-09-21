@@ -97,4 +97,55 @@ public with sharing class VTXP_EntitlementService {
         resp.data = data;
         return resp;
     }
+    //changes VTXE-40
+    /*
+ * Creates a VTXY_SubscriberOrg__c record for this subscriber org
+ * if one doesn't already exist yet. Never touches an existing record
+ * - this is registration-on-install, not an update sync.
+ */
+public static void syncSubscriberOrg(VTXP_EntitlementSyncRequestDTO req) {
+    if (req == null || String.isBlank(req.subscriberOrgId)) {
+        return;
+    }
+
+    List<VTXY_SubscriberOrg__c> existing = [
+        SELECT Id
+        FROM VTXY_SubscriberOrg__c
+        WHERE OrgId__c = :req.subscriberOrgId
+        LIMIT 1
+    ];
+
+    if (!existing.isEmpty()) {
+        return; // already registered - do nothing, per requirement
+    }
+
+    VTXY_SubscriberOrg__c subOrg = new VTXY_SubscriberOrg__c(
+        OrgId__c          = req.subscriberOrgId,
+        Name              = String.isNotBlank(req.subscriberOrgName)
+                                ? req.subscriberOrgName
+                                : req.subscriberOrgId,
+        PackageVersion__c = req.packageVersion,
+        Status__c         = 'Active',       // TODO: confirm this is the right default value for a fresh install
+        License_Status__c = null            // TODO: set a default if License_Status__c has a required/known starting value
+    );
+
+    try {
+        insert subOrg;
+
+        // VTXE-40 credential auto-provisioning: only fires on first registration,
+        // never on repeat sync calls for an org that's already registered.
+        // Enqueued (not called inline) to keep this DML transaction free of
+        // setup-metadata operations - see SubscriberCredentialProvisionJob.
+      
+            System.enqueueJob(new SubscriberCredentialProvisionJob(
+                req.subscriberOrgId, req.subscriberOrgName,req.subscriberOrgBaseUrl
+            ));
+
+    } catch (DmlException dmlEx) {
+        // Handles a race where two sync calls land at nearly the same time
+        if (!dmlEx.getMessage().contains('DUPLICATE_VALUE')) {
+            throw dmlEx;
+        }
+    }
+}
 }

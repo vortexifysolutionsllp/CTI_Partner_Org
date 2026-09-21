@@ -5,6 +5,7 @@
 public class VTXP_EntitlementSyncRequestDTO {
     public String subscriberOrgId;
     public String subscriberOrgName;
+    public String subscriberOrgBaseUrl;//VTXE-40
     public String packageVersion;
     public String namespace;
     public String requestId;
