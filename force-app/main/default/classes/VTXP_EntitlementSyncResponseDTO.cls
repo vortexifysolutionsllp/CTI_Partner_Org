@@ -11,6 +11,9 @@ public class VTXP_EntitlementSyncResponseDTO {
 
     public class DataWrapper {
         public String licenseStatus;
+        public Integer licensesConsumed;// Added by VXTY-0029
+        public Integer licensesSubscribed;// Added by VXTY-0029
+        public Integer licenses;
         public String planCode;
         public String expiresOn;                          // yyyy-MM-dd
         public Map<String, Boolean> features;
